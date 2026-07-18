@@ -1,0 +1,113 @@
+x-healthcheck-postgres: &postgreshealthcheck
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+    interval: 5s
+    timeout: 5s
+    retries: 10
+    start_period: 10s
+
+x-healthcheck-redis: &redishealthcheck
+  healthcheck:
+    test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD --no-auth-warning ping | grep PONG"]
+    interval: 5s
+    timeout: 5s
+    retries: 10
+
+x-worker: &worker
+  build: .
+  image: reflow:local
+  restart: unless-stopped
+  env_file: .env
+  environment: &container-env
+    POSTGRES_HOST: postgres        # override .env's localhost
+    REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+  networks:
+    - reflow-network
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    api:
+      condition: service_started   # api runs migrations; crude ordering, see note
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: reflow-db
+    ports: ["5432:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    networks: [reflow-network]
+    restart: always
+    <<: *postgreshealthcheck
+
+  postgres-test:
+    image: postgres:17
+    container_name: test-reflow-db
+    ports: ["5433:5432"]
+    volumes: [postgres_test_data:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+      POSTGRES_DB: test_reflow_db
+    networks: [reflow-network]
+    restart: always
+    <<: *postgreshealthcheck
+
+  redis:
+    image: redis:alpine3.20
+    container_name: redis-server
+    restart: always
+    ports: ["6379:6379"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks: [reflow-network]
+    command: ["sh", "-c", "redis-server --bind 0.0.0.0 --requirepass $$REDIS_PASSWORD"]
+    <<: *redishealthcheck
+
+  api:
+    build: .
+    image: reflow:local
+    container_name: reflow-api
+    restart: unless-stopped
+    env_file: .env
+    environment: *container-env
+    ports: ["8000:8000"]
+    networks: [reflow-network]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  chainwatch:
+    <<: *worker
+    container_name: reflow-chainwatch
+    command: ["python", "-m", "worker.chainwatch.main"]
+
+  checker:
+    <<: *worker
+    container_name: reflow-checker
+    command: ["python", "-m", "worker.checker.main"]
+
+  finalizer:
+    <<: *worker
+    container_name: reflow-finalizer
+    command: ["python", "-m", "worker.finalizer.main"]
+
+  signer:
+    <<: *worker
+    container_name: reflow-signer
+    command: ["python", "-m", "worker.signer.main"]
+
+volumes:
+  postgres_data:
+  postgres_test_data:
+
+networks:
+  reflow-network:
+    driver: bridge

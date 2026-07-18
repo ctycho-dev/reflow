@@ -1,0 +1,4 @@
+
+ETH_ADDRESS_REGEX = r"^0x[0-9a-fA-F]{40}$"
+
+GRACE_PERIOD_HOURS = 12
