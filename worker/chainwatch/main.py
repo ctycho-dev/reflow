@@ -8,6 +8,7 @@ from web3.providers import WebSocketProvider
 from app.core.sections import PostgresConfig, BlockchainConfig
 from app.database.connection import DatabaseManager
 from worker.chainwatch.watcher import watch_token
+from worker.chainwatch.claim_watcher import ClaimWatcher
 from worker.chainwatch.persistence import ChainwatchPersistence
 from app.core.logger import get_logger, setup_logging
 
@@ -55,10 +56,19 @@ async def main() -> None:
         logger.info("Watching %d token(s): %s", len(tokens), [t.symbol for t in tokens])
         logger.info("Press Ctrl+C to stop")
 
-        await asyncio.gather(*[
-            watch_token(w3, persistence, chain_id, t.symbol, t.address, t.decimals, stop_event)
-            for t in tokens
-        ])
+        await asyncio.gather(
+            ClaimWatcher(
+                w3=w3,
+                persistence=persistence,
+                chain_id=chain_id,
+                distributor_address='0x626300b270705aF188Aa1a0d7F7084D98B89e46d',
+                stop_event=stop_event
+            ).run(),
+            *[
+                watch_token(w3, persistence, chain_id, t.symbol, t.address, t.decimals, stop_event)
+                for t in tokens
+            ]
+        )
 
     await db.close()
     logger.info("Shutdown complete.")

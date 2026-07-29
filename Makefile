@@ -2,18 +2,20 @@
 
 API := http://localhost:8000/api/v1
 
-POSTGRES_HOST=localhost
-POSTGRES_USER=root
-POSTGRES_PASSWORD=password
-POSTGRES_DB=reflow
-POSTGRES_PORT=5432
-REDIS_URL    := redis://:password@localhost:6379/0
+# Native-run overrides: these beat .env because pydantic BaseSettings
+# prefers real environment variables over .env values.
+export POSTGRES_HOST := localhost
+export POSTGRES_USER := root
+export POSTGRES_PASSWORD := password
+export POSTGRES_DB := reflow
+export POSTGRES_PORT := 5432
+export REDIS_URL := redis://:password@localhost:6379/0
 
 # -----------------------------------------------------------------
 # Setup
 # -----------------------------------------------------------------
 
-.PHONY: seed seed-no-wipe checker chainwatch api
+.PHONY: seed wipe wipe-and-seed checker chainwatch finalize signer api db
 
 seed:
 	python -m scripts.seed_dev_environment
@@ -27,10 +29,32 @@ wipe-and-seed:
 	python -m scripts.seed_dev_environment
 
 # -----------------------------------------------------------------
+# Workers / API (native runs against dockerized postgres+redis)
+# -----------------------------------------------------------------
+
+checker:
+	python -m worker.checker.main
+
+chainwatch:
+	python -m worker.chainwatch.main
+
+finalize:
+	python -m worker.finalizer.main
+
+signer:
+	python -m worker.signer.main
+
+api:
+	uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+db:
+	PGPASSWORD=$(POSTGRES_PASSWORD) psql -h $(POSTGRES_HOST) -p $(POSTGRES_PORT) -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+# -----------------------------------------------------------------
 # Smoke checks (manual curls)
 # -----------------------------------------------------------------
 
-.PHONY: campaigns campaign leaderboard enroll enroll-twice
+.PHONY: campaigns campaign leaderboard enroll enroll-twice eligibility
 
 campaigns:
 	@curl -s "$(API)/campaign?chainId=1" | python3 -m json.tool
@@ -63,33 +87,7 @@ enroll-twice:
 	@echo "--- enrolledCount (should be 1) ---"
 	@curl -s "$(API)/campaign?chainId=1" | python3 -m json.tool | grep -A1 "\"id\": $(ID)" | grep enrolledCount
 
-
 # usage: make eligibility ADDR=0x0000000000000000000000000000000000000001
 eligibility:
 	@test -n "$(ADDR)" || (echo "usage: make eligibility ADDR=0x..." && exit 1)
 	@curl -s "$(API)/wallet/$(ADDR)/eligibility?chainId=1" | python3 -m json.tool
-
-
-checker:
-	python -m worker.checker.main
-
-
-chainwatch:
-	python -m worker.chainwatch.main
-
-
-finalize:
-	python -m worker.finalizer.main
-
-
-signer:
-	python -m worker.signer.main
-
-
-db:
-	psql -h localhost -p 5432 -U root -d reflow
-
-
-api:
-	POSTGRES_URL=$(POSTGRES_URL) REDIS_URL=$(REDIS_URL) \
-	uvicorn app.main:app --host 0.0.0.0 --port 8000

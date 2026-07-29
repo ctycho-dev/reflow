@@ -13,6 +13,17 @@ ERC20_ABI = [
     }
 ]
 
+DISTRIBUTOR_ABI = [{
+    "anonymous": False,
+    "inputs": [
+        {"indexed": True,  "name": "campaignId", "type": "uint256"},
+        {"indexed": True,  "name": "wallet",     "type": "address"},
+        {"indexed": False, "name": "amount",     "type": "uint256"},
+    ],
+    "name": "Claimed",
+    "type": "event",
+}]
+
 POLL_INTERVAL: int = 15  # seconds
 BACKFILL_CHUNK_SIZE: int = 10
 CONFIRMATION_BLOCKS = 12

@@ -8,6 +8,7 @@ from app.domain.checkpoint.repo import CheckpointRepository
 from app.domain.token.repo import TokenRepository
 from app.domain.contract.repo import ContractRepository
 from app.domain.processed_block.repo import ProcessedBlockRepository
+from app.domain.reward.repo import RewardClaimRepository
 from app.domain.token.model import Token
 from worker.chainwatch.constants import CONFIRMATION_BLOCKS
 from app.infrastructure.redis.pubsub import RedisPubSub
@@ -33,6 +34,7 @@ class ChainwatchPersistence:
         self.token_repo = TokenRepository()
         self.contract_repo = ContractRepository()
         self.processed_block_repo = ProcessedBlockRepository()
+        self.reward_claim_repo = RewardClaimRepository()
 
     def _get_redis_client(self) -> RedisClient:
         if self._redis_client is None:
@@ -104,6 +106,21 @@ class ChainwatchPersistence:
                 )
                 await self.checkpoint_repo.upsert(session, token_address, self.chain_id, block_number)
         logger.debug("[%s] checkpoint -> block %d (no relevant transfers)", symbol, block_number)
+
+    async def mark_claimed(
+        self, *, campaign_id: int, wallet_address: str,
+        claimed_ts: int, claim_tx_hash: bytes,
+    ) -> bool:
+        async with self.db.session_scope() as session:
+            async with session.begin():
+                updated = await self.reward_claim_repo.mark_claimed(
+                    session,
+                    campaign_id=campaign_id,
+                    wallet_address=wallet_address,
+                    claimed_ts=claimed_ts,
+                    claim_tx_hash=claim_tx_hash,
+                )
+        return updated
 
 
 def build_transfer_payload(transfer: dict, token_meta: dict, counterparty_meta: dict) -> dict:
