@@ -43,6 +43,16 @@ class CampaignCreateSchema(CamelModel):
     @classmethod
     def _addresses_lower(cls, v: str | None) -> str | None:
         return v.lower() if v else v
+    
+    @field_validator("reward_amount", "min_total_volume", mode="before")
+    @classmethod
+    def _must_be_base_units(cls, v):
+        s = str(v)
+        if not s.isdigit():
+            raise ValueError("must be a non-negative integer string (base units / wei)")
+        if len(s) > 78:
+            raise ValueError("exceeds Numeric(78,0)")
+        return Decimal(s)
 
 
 class CampaignOutSchema(CamelModel):
@@ -78,3 +88,13 @@ class ClaimProofSchema(CamelModel):
     leaf_index: int
     proof: list[str]     # 0x-prefixed sibling hashes, ready for the contract
     claimed: bool        # convenience: whether claimed_at is set
+
+
+class WalletClaimSchema(CamelModel):
+    campaign_id: int
+    campaign_name: str
+    chain_id: int
+    amount: str
+    claimed: bool
+    claim_tx_hash: str | None
+    root_status: str

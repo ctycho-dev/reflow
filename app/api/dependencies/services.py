@@ -15,6 +15,8 @@ from app.domain.auth.repo import AuthRepository
 from app.domain.auth.service import AuthService
 from app.domain.campaign.finalizer_repo import FinalizerRepository
 from app.domain.campaign.finalizer_service import FinalizerService
+from app.domain.campaign.reward_service import RewardService
+from app.domain.campaign.reward_repo import RewardClaimRepository
 
 
 def get_token_service() -> TokenService:
@@ -60,3 +62,7 @@ def get_auth_service() -> AuthService:
 
 def get_finalizer_service() -> FinalizerService:
     return FinalizerService(FinalizerRepository())
+
+
+def get_reward_service() -> RewardService:
+    return RewardService(RewardClaimRepository())

@@ -17,7 +17,7 @@ router = APIRouter(prefix=settings.api.v1.token, tags=["Tokens"])
 @limiter.limit("60/minute")
 async def list_tokens(
     request: Request,
-    chain_id: int = Query(1, description="EVM Chain ID"),
+    chain_id: int | None = Query(None, alias="chainId", description="EVM Chain ID filter"),
     session: AsyncSession = Depends(get_session),
     service: TokenService = Depends(get_token_service),
 ):

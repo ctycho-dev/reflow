@@ -8,7 +8,7 @@ from app.domain.checkpoint.repo import CheckpointRepository
 from app.domain.token.repo import TokenRepository
 from app.domain.contract.repo import ContractRepository
 from app.domain.processed_block.repo import ProcessedBlockRepository
-from app.domain.reward.repo import RewardClaimRepository
+from app.domain.campaign.reward_repo import RewardClaimRepository
 from app.domain.token.model import Token
 from worker.chainwatch.constants import CONFIRMATION_BLOCKS
 from app.infrastructure.redis.pubsub import RedisPubSub

@@ -11,9 +11,8 @@ from app.database.connection import Base
 from app.domain.wallet.model import Wallet          # noqa: F401
 from app.domain.transfer.model import Transfer      # noqa: F401
 from app.domain.checkpoint.model import Checkpoint  # noqa: F401
-from app.domain.campaign.model import Campaign      # noqa: F401
+from app.domain.campaign.model import Campaign, RewardClaim, MerkleRoot # noqa: F401
 from app.domain.enrollment.model import Enrollment  # noqa: F401
-from app.domain.reward.model import Reward          # noqa: F401
 from app.domain.token.model import Token            # noqa: F401
 from app.domain.contract.model import ProtocolContract # noqa: F401
 from app.domain.processed_block.model import ProcessedBlock # noqa: F401

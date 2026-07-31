@@ -38,7 +38,7 @@ router = APIRouter(prefix=settings.api.v1.campaign, tags=["Campaigns"])
 @limiter.limit("60/minute")
 async def list_campaigns(
     request: Request,
-    chain_id: int | None = Query(None, description="EVM Chain ID filter"),
+    chain_id: int | None = Query(None, alias="chainId", description="EVM Chain ID filter"),
     session: AsyncSession = Depends(get_session),
     service: CampaignService = Depends(get_campaign_service),
 ):

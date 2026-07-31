@@ -12,6 +12,6 @@ class ContractService:
     def __init__(self, repo: ContractRepository):
         self.repo = repo
 
-    async def list_protocols(self, session, chain_id):
+    async def list_protocols(self, session: AsyncSession, chain_id: int):
         rows = await self.repo.list_distinct_protocols(session, chain_id)
         return [ProtocolOutSchema.model_validate(r) for r in rows]

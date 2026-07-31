@@ -17,7 +17,7 @@ router = APIRouter(prefix=settings.api.v1.contract, tags=["Protocols"])
 @limiter.limit("60/minute")
 async def list_protocols(
     request: Request,
-    chain_id: int = Query(1, description="EVM Chain ID"),
+    chain_id: int | None = Query(None, alias="chainId", description="EVM Chain ID filter"),
     session: AsyncSession = Depends(get_session),
     service: ContractService = Depends(get_contract_service),
 ):
